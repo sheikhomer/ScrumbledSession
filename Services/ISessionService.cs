@@ -7,5 +7,6 @@ namespace ScrumbledSession.Services
         Task<Session> CreateSession();
         Task<Session> AddParticipant(AddParticipantRequest request, long sessionId);
         Task<Participant[]> GetParticipants(long sessionId);
+        Task<Session> GetSession(long sessionId);
     }
 }

@@ -9,31 +9,43 @@ namespace ScrumbledSession.Services
         {
             _sessionDataLoader = sessionDataLoader;
         }
+
+        public async Task<Session> GetSession(long sessionId)
+        {
+            var data = await _sessionDataLoader.GetSessionData();
+            return data.Sessions.FirstOrDefault(x => x.SessionId == sessionId);
+        }
+
         public async Task<Session> CreateSession()
         {
             var data = _sessionDataLoader.SessionDataExists()
                 ? await _sessionDataLoader.GetSessionData() : await _sessionDataLoader.Create();
-            var sessions = data.session;
+            var sessions = data.Sessions.ToList();
             long newSessionId = sessions.Any() 
-                ? sessions[sessions.Length - 1].SessionId + 1 : 555555;
+                ? sessions[sessions.Count - 1].SessionId + 1 : 555555;
             var newSession = new Session(newSessionId, new Participant[] { });
-            sessions.Append(newSession);
-            await _sessionDataLoader.Create(data);
+            sessions.Add(newSession);
+            await _sessionDataLoader.Create(data with { Sessions = sessions.ToArray()});
             return newSession;
         }
 
         public async Task<Session> AddParticipant(AddParticipantRequest request, long sessionId) 
         {
             var data = await _sessionDataLoader.GetSessionData();
-            var session = data?.session.FirstOrDefault(x => x.SessionId == sessionId);
-            session.Participants.Append(new Participant( Name: request.Name ));
-            return session;
+            var sessions = data.Sessions.ToList();
+            var selectedSession = sessions.FirstOrDefault(x => x.SessionId == sessionId);
+            var participants = selectedSession.Participants.ToList();
+            participants.Add(new Participant( Name: request.Name ));
+            var updatedSession = selectedSession with{ Participants = participants.ToArray()};
+            sessions[sessions.IndexOf(selectedSession)] = updatedSession;
+            await _sessionDataLoader.Create(data with { Sessions = sessions.ToArray() });
+            return selectedSession;
         }
 
         public async Task<Participant[]> GetParticipants(long sessionId)
         {
             var data = await _sessionDataLoader.GetSessionData();
-            var session = data?.session.FirstOrDefault(x => x.SessionId == sessionId);
+            var session = data?.Sessions.FirstOrDefault(x => x.SessionId == sessionId);
             return session.Participants.ToArray();
         }
     }

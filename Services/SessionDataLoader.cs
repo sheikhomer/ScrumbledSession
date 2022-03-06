@@ -24,9 +24,8 @@ namespace ScrumbledSession.Services
         public async Task<SessionData> Create(SessionData sessionData)
         {
             string fileName = GetDataFilePath();
-            using FileStream createStream = File.Create(fileName);
-            await JsonSerializer.SerializeAsync(createStream, sessionData);
-            await createStream.DisposeAsync();
+            string jsonString = JsonSerializer.Serialize(sessionData);
+            await File.WriteAllTextAsync(fileName, jsonString);
             return sessionData;
         }
 
