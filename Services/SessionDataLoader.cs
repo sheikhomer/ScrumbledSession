@@ -17,7 +17,7 @@ namespace ScrumbledSession.Services
 
         public async Task<SessionData> Create()
         {
-            var sessionData = new SessionData(new Session[] {});
+            var sessionData = new SessionData { Sessions = new List<Session>(), UnixTimeSecond = DateTimeOffset.UtcNow.ToUnixTimeSeconds()};
             return await Create(sessionData);
         }
 

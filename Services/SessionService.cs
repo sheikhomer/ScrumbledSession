@@ -20,33 +20,46 @@ namespace ScrumbledSession.Services
         {
             var data = _sessionDataLoader.SessionDataExists()
                 ? await _sessionDataLoader.GetSessionData() : await _sessionDataLoader.Create();
-            var sessions = data.Sessions.ToList();
-            long newSessionId = sessions.Any() 
-                ? sessions[sessions.Count - 1].SessionId + 1 : 555555;
-            var newSession = new Session(newSessionId, new Participant[] { });
-            sessions.Add(newSession);
-            await _sessionDataLoader.Create(data with { Sessions = sessions.ToArray()});
+            
+            long newSessionId = data.Sessions.Any()
+                ? data.Sessions[data.Sessions.Count - 1].SessionId + 1 : 555555;
+            var newSession = new Session
+            {
+                SessionId = newSessionId,
+                Participants = new List<Participant> { new Participant {
+                    UserId = Guid.NewGuid().ToString(),
+                    IsOwner = true,
+                }},
+            };
+            data.Sessions.Add(newSession);
+            await _sessionDataLoader.Create(data);
             return newSession;
         }
 
-        public async Task<Session> AddParticipant(AddParticipantRequest request, long sessionId) 
+        public async Task<Session> AddParticipant(ParticipantRequest request, long sessionId) 
         {
             var data = await _sessionDataLoader.GetSessionData();
-            var sessions = data.Sessions.ToList();
-            var selectedSession = sessions.FirstOrDefault(x => x.SessionId == sessionId);
-            var participants = selectedSession.Participants.ToList();
-            participants.Add(new Participant( Name: request.Name ));
-            var updatedSession = selectedSession with{ Participants = participants.ToArray()};
-            sessions[sessions.IndexOf(selectedSession)] = updatedSession;
-            await _sessionDataLoader.Create(data with { Sessions = sessions.ToArray() });
+            var selectedSession = data.Sessions.FirstOrDefault(x => x.SessionId == sessionId);
+            selectedSession.Participants.Add(new Participant { Name = request.Name, UserId = Guid.NewGuid().ToString() });
+            await _sessionDataLoader.Create(data);
             return selectedSession;
         }
 
-        public async Task<Participant[]> GetParticipants(long sessionId)
+        public async Task<Session> UpdateParticipant(ParticipantRequest request, long sessionId)
+        {
+            var data = await _sessionDataLoader.GetSessionData();
+            var selectedSession = data.Sessions.FirstOrDefault(x => x.SessionId == sessionId);
+            var selectedParticipant = selectedSession.Participants.FirstOrDefault(x => x.UserId == request.UserId);
+            selectedParticipant.Name = request.Name;
+            await _sessionDataLoader.Create(data);
+            return selectedSession;
+        }
+
+        public async Task<IList<Participant>> GetParticipants(long sessionId)
         {
             var data = await _sessionDataLoader.GetSessionData();
             var session = data?.Sessions.FirstOrDefault(x => x.SessionId == sessionId);
-            return session.Participants.ToArray();
+            return session.Participants.ToList();
         }
     }
 }

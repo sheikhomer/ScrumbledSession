@@ -1,5 +1,6 @@
 using ScrumbledSession.Models;
 using ScrumbledSession.Services;
+using System.Web.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,8 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder.WithOrigins("http://localhost:3000");
+            builder.AllowAnyMethod();
+            builder.AllowAnyHeader();
         });
 });
 
@@ -47,9 +50,19 @@ app.MapPost("/Session", async (ISessionService sessionService) =>
     return Results.Ok(session);
 });
 
-app.MapPut("/Session", async (string sessionId, AddParticipantRequest request, ISessionService sessionService) =>
+app.MapPut("/Session/{sessionId}/user", async (string sessionId, ParticipantRequest request, ISessionService sessionService) =>
 {
     await sessionService.AddParticipant(request, long.Parse(sessionId));
+    return Results.NoContent();
+});
+
+app.MapPut("/Session/{sessionId}/user/{userId}", async ([FromUri]string sessionId, [FromUri] string userId, [FromBody]ParticipantRequest request, ISessionService sessionService) =>
+{
+    if(request.UserId != userId)
+    {
+        return Results.BadRequest();
+    }
+    await sessionService.UpdateParticipant(request, long.Parse(sessionId));
     return Results.NoContent();
 });
 
